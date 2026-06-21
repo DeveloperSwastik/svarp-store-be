@@ -23,8 +23,8 @@ class Settings(BaseSettings):
     PAYMENT_SERVICE_URL: str = "http://localhost:8004"
 
     # ─── User Portal ───
-    USER_PORTAL_URL: str = "http://localhost:8001"
-    USER_PORTAL_API_KEY: str = "" "http://localhost:8004"
+    USER_PORTAL_URL: str = ""
+    USER_PORTAL_API_KEY: str = ""
     USER_PORTAL_API_SECRET: str = ""
 
     # ─── Service API Credentials ───

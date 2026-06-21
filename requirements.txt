@@ -9,3 +9,4 @@ python-multipart==0.0.9
 slowapi==0.1.9
 cachetools==5.5.0
 tenacity==9.0.0
+email-validator==2.3.0
