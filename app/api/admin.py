@@ -19,6 +19,7 @@ async def get_admin_stats():
     stats = {
         "total_revenue": 0,
         "total_orders": 0,
+        "pending_orders": 0,
         "total_products": 0,
         "total_users": 0,
         "recent_orders": [],
@@ -31,10 +32,14 @@ async def get_admin_stats():
         if isinstance(orders, list):
             stats["total_orders"] = len(orders)
             stats["recent_orders"] = orders[:5]
-            # Calculate revenue for completed/paid orders
+            pending_count = 0
             for o in orders:
-                if o.get("status") in ["paid", "delivered", "shipped", "processing", "completed"]:
+                st = (o.get("status") or "pending").lower()
+                if st in ["pending", "created", "processing"]:
+                    pending_count += 1
+                if st in ["paid", "delivered", "shipped", "processing", "completed"]:
                     stats["total_revenue"] += float(o.get("total_amount", 0) or 0)
+            stats["pending_orders"] = pending_count
     except Exception as e:
         pass
 
