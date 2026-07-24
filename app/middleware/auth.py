@@ -44,3 +44,18 @@ async def get_optional_user(
         return payload
     except JWTError:
         return None
+
+
+async def require_admin(
+    user: dict = Depends(get_current_user),
+) -> dict:
+    """Verify that current user has admin permissions."""
+    roles = user.get("roles", [])
+    role = user.get("role", "")
+    if "admin" not in roles and role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return user
+

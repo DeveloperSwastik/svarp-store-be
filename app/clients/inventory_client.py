@@ -37,5 +37,14 @@ class InventoryClient(BaseClient):
             params=params,
         )
 
+    async def create_product(self, product_data: dict) -> dict:
+        """Create a new product in the inventory microservice."""
+        return await self.post("/api/v1/products/", json=product_data)
+
+    async def update_product(self, product_id: str, product_data: dict) -> dict:
+        """Update an existing product in the inventory microservice."""
+        return await self.put(f"/api/v1/products/{product_id}", json=product_data)
+
 
 inventory_client = InventoryClient()
+

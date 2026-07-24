@@ -62,5 +62,13 @@ class UserPortalClient(BaseClient):
         """Create or update user address on central portal."""
         return await self.post(f"/api/v1/addresses/user/{user_id}", json=address_data)
 
+    async def list_users(self, skip: int = 0, limit: int = 100, search: str = None) -> list:
+        """List all users from central portal."""
+        params = {"skip": skip, "limit": limit}
+        if search:
+            params["search"] = search
+        return await self.get("/api/v1/external/list-users", params=params)
+
 
 user_portal_client = UserPortalClient()
+

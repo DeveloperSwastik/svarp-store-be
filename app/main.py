@@ -14,7 +14,7 @@ from slowapi.errors import RateLimitExceeded
 
 from app.core.config import settings
 from app.middleware.logging import LoggingMiddleware
-from app.api import auth, products, payments, orders
+from app.api import auth, products, payments, orders, admin
 
 # Configure logging
 logging.basicConfig(
@@ -77,6 +77,8 @@ app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(products.router, prefix=settings.API_V1_STR)
 app.include_router(payments.router, prefix=settings.API_V1_STR)
 app.include_router(orders.router, prefix=settings.API_V1_STR)
+app.include_router(admin.router, prefix=settings.API_V1_STR)
+
 
 
 # ─── Dynamic Sitemap XML ───
