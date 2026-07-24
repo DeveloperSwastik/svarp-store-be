@@ -49,6 +49,23 @@ class ProductService:
                 if "image" not in v and v.get("images"):
                     v["image"] = v["images"][0]
 
+        # If product has no cover image or images array, fall back to first available variant image
+        has_prod_image = bool(product.get("image")) or (bool(product.get("images")) and len(product["images"]) > 0 and bool(product["images"][0]))
+        if not has_prod_image:
+            first_v_img = None
+            if "real_variants" in product and isinstance(product["real_variants"], list):
+                for v in product["real_variants"]:
+                    if v.get("images") and isinstance(v["images"], list) and len(v["images"]) > 0 and v["images"][0]:
+                        first_v_img = v["images"][0]
+                        break
+                    elif v.get("image"):
+                        first_v_img = v["image"]
+                        break
+            if first_v_img:
+                product["image"] = first_v_img
+                if not product.get("images") or len(product.get("images", [])) == 0:
+                    product["images"] = [first_v_img]
+
         return product
 
     async def get_products(self, limit: int = 50, offset: int = 0) -> dict:
