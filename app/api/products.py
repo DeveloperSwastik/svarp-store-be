@@ -32,7 +32,7 @@ async def search_products(q: str = Query(..., min_length=1)):
 
 
 @router.get("/{product_id}")
-async def get_product(product_id: int):
+async def get_product(product_id: str):
     """Fetch single product with stock info."""
     try:
         return await product_service.get_product(product_id)

@@ -6,8 +6,8 @@ from typing import Optional
 from cachetools import TTLCache
 from app.clients.inventory_client import inventory_client
 
-# Cache products for 5 minutes to reduce inventory portal load
-_product_cache = TTLCache(maxsize=500, ttl=300)
+# Cache products with 5s TTL to ensure real-time inventory stock synchronization
+_product_cache = TTLCache(maxsize=500, ttl=5)
 
 
 class ProductService:
@@ -16,12 +16,9 @@ class ProductService:
         if not product:
             return product
 
-        # 1. Map 'variants' to 'real_variants' for frontend compatibility
         if "variants" in product and "real_variants" not in product:
             product["real_variants"] = product["variants"]
 
-        # 2. Prefix image URLs with the inventory portal base URL
-        # e.g., 'https://api.svarp.org/inventory/api/v1' -> 'https://api.svarp.org/inventory'
         from app.core.config import settings
         base_url = settings.INVENTORY_SERVICE_URL.replace("/api/v1", "").rstrip("/")
 
@@ -69,7 +66,7 @@ class ProductService:
         _product_cache[cache_key] = data
         return data
 
-    async def get_product(self, product_id: int) -> dict:
+    async def get_product(self, product_id: str) -> dict:
         """Fetch single product with stock info."""
         cache_key = f"product:{product_id}"
         if cache_key in _product_cache:

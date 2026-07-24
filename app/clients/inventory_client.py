@@ -23,11 +23,11 @@ class InventoryClient(BaseClient):
             params={"limit": limit, "offset": offset},
         )
 
-    async def get_product(self, product_id: int) -> dict:
+    async def get_product(self, product_id: str) -> dict:
         """Fetch a single product by ID."""
         return await self.get(f"/api/v1/products/{product_id}")
 
-    async def get_stock(self, product_id: int, variant_id: Optional[int] = None) -> dict:
+    async def get_stock(self, product_id: str, variant_id: Optional[str] = None) -> dict:
         """Check stock level for a product."""
         params = {}
         if variant_id:
