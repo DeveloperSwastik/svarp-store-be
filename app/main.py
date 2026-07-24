@@ -79,6 +79,45 @@ app.include_router(payments.router, prefix=settings.API_V1_STR)
 app.include_router(orders.router, prefix=settings.API_V1_STR)
 
 
+# ─── Dynamic Sitemap XML ───
+@app.get("/sitemap.xml", tags=["seo"])
+async def get_sitemap(request: Request):
+    from fastapi.responses import Response
+    from app.clients.inventory_client import inventory_client
+    
+    req_host = str(request.base_url).rstrip('/')
+    base_url = req_host if "localhost" not in req_host else "https://bodywellness.svarp.org"
+    static_paths = ["", "/shop", "/about", "/mission", "/contact"]
+    
+    urls_xml = []
+    for path in static_paths:
+        urls_xml.append(f"""  <url>
+    <loc>{base_url}{path}</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>""")
+    
+    try:
+        products = await inventory_client.get_products()
+        for p in products:
+            p_id = p.get("id")
+            if p_id:
+                urls_xml.append(f"""  <url>
+    <loc>{base_url}/product/{p_id}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>""")
+    except Exception as e:
+        logger.warning(f"Could not fetch products for sitemap: {e}")
+
+    sitemap_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{"".join(urls_xml)}
+</urlset>"""
+
+    return Response(content=sitemap_content, media_type="application/xml")
+
+
 @app.get("/health", tags=["health"])
 async def health_check():
     return {"status": "healthy", "service": settings.PROJECT_NAME}
