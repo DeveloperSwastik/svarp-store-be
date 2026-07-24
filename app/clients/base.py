@@ -61,7 +61,7 @@ class BaseClient:
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=0.5, min=0.5, max=5),
-        retry=retry_if_exception_type((httpx.ConnectError, httpx.ReadTimeout)),
+        retry=retry_if_exception_type((httpx.ConnectError, httpx.TimeoutException)),
         reraise=True,
     )
     async def _request(
@@ -94,12 +94,15 @@ class BaseClient:
                 data=data,
                 params=params,
             )
-        except httpx.ConnectError:
+        except (httpx.ConnectError, httpx.ConnectTimeout):
             logger.error(f"[{self.service_name}] Connection failed: {endpoint}")
             raise ServiceError(503, f"{self.service_name} is unavailable", self.service_name)
-        except httpx.ReadTimeout:
+        except (httpx.ReadTimeout, httpx.TimeoutException):
             logger.error(f"[{self.service_name}] Timeout: {endpoint}")
             raise ServiceError(504, f"{self.service_name} timed out", self.service_name)
+        except httpx.RequestError as e:
+            logger.error(f"[{self.service_name}] Request error: {endpoint} - {e}")
+            raise ServiceError(503, f"{self.service_name} error: {str(e)}", self.service_name)
 
         if response.status_code >= 400:
             try:
