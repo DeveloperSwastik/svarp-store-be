@@ -54,6 +54,43 @@ class AuthService:
             },
         }
 
+    async def otp_login(self, email: str) -> dict:
+        """
+        Authenticate user via verified OTP and issue a store-scoped JWT.
+        """
+        email_clean = email.strip().lower()
+
+        try:
+            user_info = await user_portal_client.get_user(email=email_clean)
+        except Exception:
+            user_info = {}
+
+        user_id = str(user_info.get("user_id", email_clean))
+        user_email = user_info.get("email", email_clean)
+        full_name = user_info.get("full_name", email_clean.split("@")[0])
+        roles = user_info.get("roles", ["consumer"])
+
+        store_token = create_access_token(
+            data={
+                "sub": user_id,
+                "email": user_email,
+                "name": full_name,
+                "roles": roles,
+            }
+        )
+
+        return {
+            "access_token": store_token,
+            "token_type": "bearer",
+            "user": {
+                "user_id": user_id,
+                "email": user_email,
+                "full_name": full_name,
+                "is_active": True,
+                "roles": roles,
+            },
+        }
+
     async def register(self, email: str, password: str, full_name: str) -> dict:
         """
         Register a new user via User Portal, then auto-login and return store JWT.

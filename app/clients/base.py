@@ -61,7 +61,7 @@ class BaseClient:
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=0.5, min=0.5, max=5),
-        retry=retry_if_exception_type((httpx.ConnectError, httpx.TimeoutException)),
+        retry=retry_if_exception_type((httpx.ConnectError, httpx.TimeoutException, ServiceError)),
         reraise=True,
     )
     async def _request(
