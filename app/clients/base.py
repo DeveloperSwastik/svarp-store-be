@@ -36,6 +36,11 @@ class BaseClient:
         self._client = httpx.AsyncClient(
             base_url=self.base_url,
             timeout=DEFAULT_TIMEOUT,
+            limits=httpx.Limits(
+                max_connections=20,
+                max_keepalive_connections=10,
+                keepalive_expiry=30,
+            ),
         )
 
     def _auth_headers(self, bearer_token: Optional[str] = None) -> dict:
@@ -59,9 +64,9 @@ class BaseClient:
         return headers
 
     @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=0.5, min=0.5, max=5),
-        retry=retry_if_exception_type((httpx.ConnectError, httpx.TimeoutException, ServiceError)),
+        stop=stop_after_attempt(2),
+        wait=wait_exponential(multiplier=0.3, min=0.3, max=3),
+        retry=retry_if_exception_type((httpx.ConnectError, httpx.TimeoutException)),
         reraise=True,
     )
     async def _request(

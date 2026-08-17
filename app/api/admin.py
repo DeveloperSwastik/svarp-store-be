@@ -2,6 +2,7 @@
 Admin API routes — dashboard stats, product management, order lifecycle management, user directory.
 Protected by require_admin dependency.
 """
+import asyncio
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional, List, Dict, Any
 from app.middleware.auth import require_admin
@@ -15,7 +16,7 @@ router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(requir
 
 @router.get("/stats")
 async def get_admin_stats():
-    """Aggregate dashboard statistics across microservices."""
+    """Aggregate dashboard statistics across microservices (parallel)."""
     stats = {
         "total_revenue": 0,
         "total_orders": 0,
@@ -26,51 +27,61 @@ async def get_admin_stats():
         "low_stock_products": [],
     }
 
-    # Fetch orders
-    try:
-        orders = await order_client.get_orders(limit=100)
-        if isinstance(orders, list):
-            stats["total_orders"] = len(orders)
-            stats["recent_orders"] = orders[:5]
-            pending_count = 0
-            for o in orders:
-                st = (o.get("status") or "pending").lower()
-                if st in ["pending", "created", "processing"]:
-                    pending_count += 1
-                if st in ["paid", "delivered", "shipped", "processing", "completed"]:
-                    stats["total_revenue"] += float(o.get("total_amount", 0) or 0)
-            stats["pending_orders"] = pending_count
-    except Exception as e:
-        pass
+    # Fetch all data in parallel instead of sequentially
+    async def fetch_orders():
+        try:
+            return await order_client.get_orders(limit=100)
+        except Exception:
+            return []
 
-    # Fetch products
-    try:
-        prod_res = await inventory_client.get_products(limit=100)
-        if isinstance(prod_res, dict):
-            items = prod_res.get("items", [])
-            stats["total_products"] = prod_res.get("total", len(items))
-            # Check low stock products
-            for p in items:
-                stock = p.get("quantity", p.get("stock", 10))
-                if stock <= 5:
-                    stats["low_stock_products"].append({
-                        "id": p.get("id"),
-                        "name": p.get("name"),
-                        "sku": p.get("sku"),
-                        "stock": stock
-                    })
-        elif isinstance(prod_res, list):
-            stats["total_products"] = len(prod_res)
-    except Exception as e:
-        pass
+    async def fetch_products():
+        try:
+            return await inventory_client.get_products(limit=100)
+        except Exception:
+            return {}
 
-    # Fetch users count from portal
-    try:
-        users = await user_portal_client.list_users(limit=100)
-        if isinstance(users, list):
-            stats["total_users"] = len(users)
-    except Exception as e:
-        pass
+    async def fetch_users():
+        try:
+            return await user_portal_client.list_users(limit=100)
+        except Exception:
+            return []
+
+    orders, prod_res, users = await asyncio.gather(
+        fetch_orders(), fetch_products(), fetch_users()
+    )
+
+    # Process orders
+    if isinstance(orders, list):
+        stats["total_orders"] = len(orders)
+        stats["recent_orders"] = orders[:5]
+        pending_count = 0
+        for o in orders:
+            st = (o.get("status") or "pending").lower()
+            if st in ["pending", "created", "processing"]:
+                pending_count += 1
+            if st in ["paid", "delivered", "shipped", "processing", "completed"]:
+                stats["total_revenue"] += float(o.get("total_amount", 0) or 0)
+        stats["pending_orders"] = pending_count
+
+    # Process products
+    if isinstance(prod_res, dict):
+        items = prod_res.get("items", [])
+        stats["total_products"] = prod_res.get("total", len(items))
+        for p in items:
+            stock = p.get("quantity", p.get("stock", 10))
+            if stock <= 5:
+                stats["low_stock_products"].append({
+                    "id": p.get("id"),
+                    "name": p.get("name"),
+                    "sku": p.get("sku"),
+                    "stock": stock
+                })
+    elif isinstance(prod_res, list):
+        stats["total_products"] = len(prod_res)
+
+    # Process users
+    if isinstance(users, list):
+        stats["total_users"] = len(users)
 
     return stats
 

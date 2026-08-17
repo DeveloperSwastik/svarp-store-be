@@ -16,7 +16,7 @@ class EmailClient(BaseClient):
             api_secret=settings.EMAIL_SERVICE_API_SECRET,
             service_name="email-service",
         )
-        self._client.timeout = httpx.Timeout(timeout=60.0, connect=30.0)
+        self._client.timeout = httpx.Timeout(timeout=15.0, connect=5.0)
 
     async def generate_otp(
         self,

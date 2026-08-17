@@ -3,11 +3,15 @@ Auth service — orchestrates login/register through the User Portal microservic
 All user management is delegated to the Central User Portal via its external API.
 """
 import logging
+from cachetools import TTLCache
 from app.core.security import create_access_token
 from app.clients.user_portal_client import user_portal_client
 from app.clients.base import ServiceError
 
 logger = logging.getLogger("store-bff")
+
+# Cache user profiles for 60 seconds to avoid repeated User Portal calls
+_profile_cache = TTLCache(maxsize=200, ttl=60)
 
 
 class AuthService:
@@ -31,6 +35,15 @@ class AuthService:
         user_email = user_info.get("email", email_clean)
         full_name = user_info.get("full_name", "")
         roles = user_info.get("roles", ["consumer"])
+
+        # Warm the profile cache on login
+        _profile_cache[user_id] = {
+            "user_id": user_id,
+            "email": user_email,
+            "full_name": full_name,
+            "is_active": user_info.get("is_active", True),
+            "roles": roles,
+        }
 
         # Issue store-scoped JWT
         store_token = create_access_token(
@@ -70,6 +83,15 @@ class AuthService:
         full_name = user_info.get("full_name", email_clean.split("@")[0])
         roles = user_info.get("roles", ["consumer"])
 
+        # Warm the profile cache on OTP login
+        _profile_cache[user_id] = {
+            "user_id": user_id,
+            "email": user_email,
+            "full_name": full_name,
+            "is_active": True,
+            "roles": roles,
+        }
+
         store_token = create_access_token(
             data={
                 "sub": user_id,
@@ -105,17 +127,26 @@ class AuthService:
 
     async def get_profile(self, user_id: str) -> dict:
         """
-        Fetch user profile from User Portal.
+        Fetch user profile from User Portal (with 60s TTL cache).
         """
+        # Check cache first
+        cached = _profile_cache.get(user_id)
+        if cached:
+            return cached
+
+        # Cache miss — call User Portal
         user_info = await user_portal_client.get_user(user_id=user_id)
 
-        return {
+        profile = {
             "user_id": str(user_info.get("user_id", "")),
             "email": user_info.get("email", ""),
             "full_name": user_info.get("full_name", ""),
             "is_active": user_info.get("is_active", True),
             "roles": user_info.get("roles", ["consumer"]),
         }
+
+        _profile_cache[user_id] = profile
+        return profile
 
     async def update_profile(self, user_id: str, data: dict) -> dict:
         """
