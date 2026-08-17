@@ -7,6 +7,10 @@ from app.schemas.order import OrderCreate
 from app.services.order_service import order_service
 from app.middleware.auth import get_current_user
 from app.clients.base import ServiceError
+from app.clients.coupon_client import coupon_client
+import logging
+
+logger = logging.getLogger("store-bff")
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
@@ -43,7 +47,21 @@ async def create_order(
             "currency": request.currency,
             "items": formatted_items,
         }
-        return await order_service.create_order(user.get("sub"), order_data)
+        created_order = await order_service.create_order(user.get("sub"), order_data)
+        
+        # Log Coupon Claim
+        if request.coupon_id:
+            try:
+                await coupon_client.claim_coupon({
+                    "coupon_id": request.coupon_id,
+                    "user_id": user.get("sub"),
+                    "order_id": created_order.get("id") or request.payment_id or "unknown",
+                    "payment_verified": True
+                })
+            except Exception as claim_err:
+                logger.error(f"Failed to claim coupon in coupon portal: {claim_err}", exc_info=True)
+                
+        return created_order
     except ServiceError as e:
         raise HTTPException(status_code=e.status_code, detail=e.detail)
 

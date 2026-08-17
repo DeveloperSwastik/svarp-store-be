@@ -22,3 +22,5 @@ class OrderCreate(BaseModel):
     total_amount: float = Field(..., gt=0)
     currency: str = "INR"
     notes: Optional[str] = None
+    coupon_code: Optional[str] = None
+    coupon_id: Optional[int] = None

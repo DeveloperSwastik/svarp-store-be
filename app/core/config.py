@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     INVENTORY_SERVICE_URL: str = "http://localhost:8002"
     ORDER_SERVICE_URL: str = "http://localhost:8003"
     PAYMENT_SERVICE_URL: str = "http://localhost:8004"
+    COUPON_SERVICE_URL: str = "http://localhost:5007"
 
     # ─── User Portal ───
     USER_PORTAL_URL: str = ""
@@ -34,6 +35,8 @@ class Settings(BaseSettings):
     PAYMENT_SERVICE_API_SECRET: str = ""
     ORDER_SERVICE_API_KEY: str = ""
     ORDER_SERVICE_API_SECRET: str = ""
+    COUPON_SERVICE_API_KEY: str = ""
+    COUPON_SERVICE_API_SECRET: str = ""
 
     # ─── Email Service ───
     EMAIL_SERVICE_URL: str = "http://127.0.0.1:5005/api/v1"

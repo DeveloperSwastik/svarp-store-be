@@ -14,7 +14,7 @@ from slowapi.errors import RateLimitExceeded
 
 from app.core.config import settings
 from app.middleware.logging import LoggingMiddleware
-from app.api import auth, products, payments, orders, admin
+from app.api import auth, products, payments, orders, coupons, admin
 
 # Configure logging
 logging.basicConfig(
@@ -35,10 +35,12 @@ async def lifespan(app: FastAPI):
     from app.clients.inventory_client import inventory_client
     from app.clients.payment_client import payment_client
     from app.clients.order_client import order_client
+    from app.clients.coupon_client import coupon_client
     from app.clients.user_portal_client import user_portal_client
     await inventory_client.close()
     await payment_client.close()
     await order_client.close()
+    await coupon_client.close()
     await user_portal_client.close()
     logger.info("Store BFF shutdown complete")
 
@@ -77,6 +79,7 @@ app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(products.router, prefix=settings.API_V1_STR)
 app.include_router(payments.router, prefix=settings.API_V1_STR)
 app.include_router(orders.router, prefix=settings.API_V1_STR)
+app.include_router(coupons.router, prefix=settings.API_V1_STR)
 app.include_router(admin.router, prefix=settings.API_V1_STR)
 
 
