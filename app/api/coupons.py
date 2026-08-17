@@ -36,7 +36,6 @@ async def validate_coupon(
         payload = {
             "code": request.code,
             "user_id": user.get("sub"), # user email or ID
-            "app": "store",
             "subtotal": float(request.subtotal),
             "items": [item.dict() for item in request.items] if request.items else []
         }
